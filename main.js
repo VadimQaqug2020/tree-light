@@ -91,6 +91,9 @@ trunk.receiveShadow = true;
 scene.add(trunk);
 
 // Star at the top
+let starMaterial;
+let yanukovychTexture = null;
+
 function createStar() {
     const starGroup = new THREE.Group();
     const starSize = 0.4;
@@ -115,7 +118,27 @@ function createStar() {
     starShape.closePath();
     
     const starGeometry = new THREE.ShapeGeometry(starShape);
-    const starMaterial = new THREE.MeshStandardMaterial({ 
+    
+    // Compute bounding box for UV mapping
+    starGeometry.computeBoundingBox();
+    const bbox = starGeometry.boundingBox;
+    const sizeX = bbox.max.x - bbox.min.x;
+    const sizeY = bbox.max.y - bbox.min.y;
+    
+    // Manually set UV coordinates to properly map texture
+    const positions = starGeometry.attributes.position;
+    const uvs = [];
+    for (let i = 0; i < positions.count; i++) {
+        const x = positions.getX(i);
+        const y = positions.getY(i);
+        // Map to 0-1 UV space, centered
+        const u = (x - bbox.min.x) / sizeX;
+        const v = (y - bbox.min.y) / sizeY;
+        uvs.push(u, v);
+    }
+    starGeometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    
+    starMaterial = new THREE.MeshStandardMaterial({ 
         color: 0xffd700,
         emissive: 0xffd700,
         emissiveIntensity: 0.5,
@@ -131,6 +154,111 @@ function createStar() {
     // Position at top of tree
     starGroup.position.y = tree.position.y + (treeHeight / 2) + starSize * 0.5;
     starGroup.castShadow = true;
+    
+    // Create Yanukovych texture from canvas (fallback if image doesn't load)
+    function createYanukovychTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+        
+        // Create a simple representation - you can replace this with actual image loading
+        // For now, using a colored background with text as placeholder
+        ctx.fillStyle = '#f0f0f0';
+        ctx.fillRect(0, 0, 256, 256);
+        ctx.fillStyle = '#333';
+        ctx.font = 'bold 24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Я бачу', 128, 100);
+        ctx.fillText('світло!', 128, 140);
+        ctx.font = '16px Arial';
+        ctx.fillText('В.Ф. Янукович', 128, 180);
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.flipY = false;
+        return texture;
+    }
+    
+    // Try to load actual image from local file first, then remote, fallback to canvas
+    const textureLoader = new THREE.TextureLoader();
+    const imagePaths = [
+        'yanukovych.jpg',
+        'yanukovych.png',
+        'yanukovych.webp',
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Viktor_Yanukovych_%282010%29.jpg/220px-Viktor_Yanukovych_%282010%29.jpg'
+    ];
+    
+    let currentPathIndex = 0;
+    function tryLoadNextImage() {
+        if (currentPathIndex >= imagePaths.length) {
+            console.log('Using canvas fallback for Yanukovych texture');
+            yanukovychTexture = createYanukovychTexture();
+            // Apply texture if lights are already on
+            if (lightsOn) {
+                toggleLights(true);
+            }
+            return;
+        }
+        
+        textureLoader.load(
+            imagePaths[currentPathIndex],
+            (texture) => {
+                // Create a cropped/centered version of the image on canvas
+                const img = texture.image;
+                const canvas = document.createElement('canvas');
+                const size = 512; // Use a square canvas
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                
+                // Calculate crop to center the face/important part
+                // Assuming portrait orientation, crop to center square
+                const imgAspect = img.width / img.height;
+                let sourceX = 0;
+                let sourceY = 0;
+                let sourceWidth = img.width;
+                let sourceHeight = img.height;
+                
+                if (imgAspect > 1) {
+                    // Landscape: crop width to make it square
+                    sourceWidth = img.height;
+                    sourceX = (img.width - sourceWidth) / 2;
+                } else {
+                    // Portrait: crop height to make it square, focus on upper portion (face)
+                    sourceHeight = img.width;
+                    sourceY = Math.max(0, (img.height - sourceHeight) * 0.1); // Focus on top 10-90% for face
+                }
+                
+                // Draw cropped image to canvas, centered
+                ctx.drawImage(
+                    img,
+                    sourceX, sourceY, sourceWidth, sourceHeight,
+                    0, 0, size, size
+                );
+                
+                // Create texture from canvas
+                yanukovychTexture = new THREE.CanvasTexture(canvas);
+                yanukovychTexture.flipY = false;
+                yanukovychTexture.wrapS = THREE.ClampToEdgeWrapping;
+                yanukovychTexture.wrapT = THREE.ClampToEdgeWrapping;
+                yanukovychTexture.minFilter = THREE.LinearFilter;
+                yanukovychTexture.magFilter = THREE.LinearFilter;
+                console.log('Loaded and cropped Yanukovych texture from:', imagePaths[currentPathIndex]);
+                // Apply texture if lights are already on
+                if (lightsOn) {
+                    toggleLights(true);
+                }
+            },
+            undefined,
+            (error) => {
+                console.log('Failed to load from:', imagePaths[currentPathIndex]);
+                currentPathIndex++;
+                tryLoadNextImage();
+            }
+        );
+    }
+    
+    tryLoadNextImage();
     
     return starGroup;
 }
@@ -496,6 +624,30 @@ function toggleLights(on) {
             lightObj.mesh.material.color = new THREE.Color(0x333333); // Dark gray when off
         }
     });
+    
+    // Update star texture based on lights state
+    if (starMaterial) {
+        if (on && yanukovychTexture) {
+            // Use Yanukovych image when lights are on
+            starMaterial.map = yanukovychTexture;
+            starMaterial.color = new THREE.Color(0xffffff); // White to show texture colors
+            starMaterial.emissive = new THREE.Color(0x000000); // No emissive to show texture better
+            starMaterial.emissiveIntensity = 0;
+            starMaterial.roughness = 0.5; // Less reflective to show texture
+            starMaterial.metalness = 0.1; // Less metallic to show texture
+            // Ensure texture is visible
+            starMaterial.transparent = false;
+        } else {
+            // Use yellow color when lights are off
+            starMaterial.map = null;
+            starMaterial.color = new THREE.Color(0xffd700);
+            starMaterial.emissive = new THREE.Color(0xffd700);
+            starMaterial.emissiveIntensity = 0.5;
+            starMaterial.roughness = 0.2;
+            starMaterial.metalness = 0.8;
+        }
+        starMaterial.needsUpdate = true;
+    }
 }
 
 // Animate lights
@@ -555,6 +707,29 @@ window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Collapsible controls for mobile
+const controlsPanel = document.getElementById('controls');
+const controlsToggle = document.getElementById('controls-toggle');
+const controlsContent = document.querySelector('.controls-content');
+
+// Toggle controls panel
+function toggleControls() {
+    controlsPanel.classList.toggle('collapsed');
+    controlsToggle.textContent = controlsPanel.classList.contains('collapsed') ? '▶' : '▼';
+}
+
+// Click on header or button to toggle
+controlsToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleControls();
+});
+
+document.querySelector('#controls h2').addEventListener('click', (e) => {
+    if (e.target !== controlsToggle) {
+        toggleControls();
+    }
 });
 
 // Animation loop

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Configurable Christmas Tree</title>
+    <title>3D Налаштовувана Ялинка</title>
     <style>
         * {
             margin: 0;
@@ -39,12 +39,45 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
             min-width: 250px;
             z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        #controls.collapsed {
+            padding: 10px 15px;
+        }
+
+        #controls.collapsed .controls-content {
+            display: none;
         }
 
         #controls h2 {
             margin-bottom: 15px;
             color: #2a5298;
             font-size: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .toggle-btn {
+            background: none;
+            border: none;
+            font-size: 18px;
+            color: #2a5298;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background 0.2s;
+        }
+
+        .toggle-btn:hover {
+            background: rgba(42, 82, 152, 0.1);
+        }
+
+        .controls-content {
+            transition: opacity 0.3s ease;
         }
 
         .control-group {
@@ -106,13 +139,19 @@
             #controls {
                 top: 10px;
                 right: 10px;
-                padding: 15px;
-                min-width: 200px;
+                padding: 12px;
+                min-width: 180px;
                 font-size: 14px;
             }
 
+            #controls.collapsed {
+                padding: 8px 12px;
+                min-width: auto;
+            }
+
             #controls h2 {
-                font-size: 18px;
+                font-size: 16px;
+                margin-bottom: 0;
             }
 
             .info {
@@ -129,39 +168,44 @@
         <div id="canvas-container"></div>
         
         <div id="controls">
-            <h2>🎄 Tree Configuration</h2>
+            <h2>
+                <span>🎄 Налаштування ялинки</span>
+                <button class="toggle-btn" id="controls-toggle" aria-label="Перемкнути налаштування">▼</button>
+            </h2>
             
-            <div class="control-group">
-                <label for="balls">Christmas Balls:</label>
-                <input type="range" id="balls" min="0" max="50" value="15" step="1">
-                <span class="value" id="balls-value">15</span>
-            </div>
-            
-            <div class="control-group">
-                <label for="lights">Lights:</label>
-                <input type="range" id="lights" min="0" max="30" value="10" step="1">
-                <span class="value" id="lights-value">10</span>
-            </div>
-            
-            <div class="control-group">
-                <label for="lollipops">Candy Sticks:</label>
-                <input type="range" id="lollipops" min="0" max="25" value="8" step="1">
-                <span class="value" id="lollipops-value">8</span>
-            </div>
-            
-            <div class="control-group">
-                <div class="toggle-container">
-                    <input type="checkbox" id="lights-on" checked>
-                    <label for="lights-on">Lights On</label>
+            <div class="controls-content">
+                <div class="control-group">
+                    <label for="balls">Новорічні кулі:</label>
+                    <input type="range" id="balls" min="0" max="50" value="15" step="1">
+                    <span class="value" id="balls-value">15</span>
+                </div>
+                
+                <div class="control-group">
+                    <label for="lights">Вогники:</label>
+                    <input type="range" id="lights" min="0" max="30" value="10" step="1">
+                    <span class="value" id="lights-value">10</span>
+                </div>
+                
+                <div class="control-group">
+                    <label for="lollipops">Льодяники:</label>
+                    <input type="range" id="lollipops" min="0" max="25" value="8" step="1">
+                    <span class="value" id="lollipops-value">8</span>
+                </div>
+                
+                <div class="control-group">
+                    <div class="toggle-container">
+                        <input type="checkbox" id="lights-on" checked>
+                        <label for="lights-on">Вогники увімкнено</label>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="info">
-            <p><strong>Controls:</strong></p>
-            <p>🖱️ Left Click + Drag: Rotate</p>
-            <p>🖱️ Right Click + Drag: Pan</p>
-            <p>🖱️ Scroll: Zoom</p>
+            <p><strong>Керування:</strong></p>
+            <p>🖱️ Лівий клік + перетягування: Обертання</p>
+            <p>🖱️ Правий клік + перетягування: Переміщення</p>
+            <p>🖱️ Прокрутка: Масштабування</p>
         </div>
     </div>
 
