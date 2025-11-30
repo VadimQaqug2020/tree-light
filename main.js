@@ -57,10 +57,10 @@ ground.position.y = 0; // Shifted up from -2
 ground.receiveShadow = true;
 scene.add(ground);
 
-// Tree (Cone)
-const treeHeight = 6;
-const treeRadius = 2.5;
-const treeGeometry = new THREE.ConeGeometry(treeRadius, treeHeight, 32);
+// Tree (Cone) - made configurable
+let treeHeight = 6;
+let treeRadius = 2.5;
+let treeGeometry = new THREE.ConeGeometry(treeRadius, treeHeight, 32);
 const treeMaterial = new THREE.MeshStandardMaterial({ 
     color: 0x1a5f1a,
     roughness: 0.9,
@@ -93,10 +93,20 @@ scene.add(trunk);
 // Star at the top
 let starMaterial;
 let yanukovychTexture = null;
+let starSize = 0.4;
+let starGroup = null;
 
-function createStar() {
-    const starGroup = new THREE.Group();
-    const starSize = 0.4;
+function createStar(size = starSize) {
+    if (starGroup) {
+        scene.remove(starGroup);
+        starGroup.children.forEach(child => {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material && child.material !== starMaterial) child.material.dispose();
+        });
+    }
+    
+    starGroup = new THREE.Group();
+    const currentStarSize = size;
     
     // Create a 5-pointed star shape using Shape
     const starShape = new THREE.Shape();
@@ -152,7 +162,7 @@ function createStar() {
     starGroup.add(starMesh);
     
     // Position at top of tree
-    starGroup.position.y = tree.position.y + (treeHeight / 2) + starSize * 0.5;
+    starGroup.position.y = tree.position.y + (treeHeight / 2) + currentStarSize * 0.5;
     starGroup.castShadow = true;
     
     // Create Yanukovych texture from canvas (fallback if image doesn't load)
@@ -258,13 +268,16 @@ function createStar() {
         );
     }
     
-    tryLoadNextImage();
+    // Only load texture if not already loaded
+    if (!yanukovychTexture) {
+        tryLoadNextImage();
+    }
     
+    scene.add(starGroup);
     return starGroup;
 }
 
-const star = createStar();
-scene.add(star);
+createStar();
 
 // Collections for decorations
 let balls = [];
@@ -273,6 +286,8 @@ let lightObjects = [];
 let lightWires = [];
 let lollipops = [];
 let lightsOn = true;
+let lightIntensity = 0.5;
+let rotationSpeed = 0;
 
 // Function to generate evenly distributed points on cone surface
 // starPadding: space to leave at top for star (0-1, where 1 is full height)
@@ -608,13 +623,67 @@ updateDecorations(15, 10, 8);
 // Set initial lights state
 toggleLights(true);
 
+// Function to update tree size
+function updateTreeSize(height, radius) {
+    treeHeight = height;
+    treeRadius = radius;
+    
+    // Update tree geometry
+    tree.geometry.dispose();
+    tree.geometry = new THREE.ConeGeometry(treeRadius, treeHeight, 32);
+    
+    // Update tree position to keep base at same relative position
+    tree.position.y = 4.5;
+    
+    // Update trunk
+    const treeBaseY = tree.position.y - (treeHeight / 2);
+    const groundY = 0;
+    const trunkHeight = treeBaseY - groundY;
+    trunk.geometry.dispose();
+    trunk.geometry = new THREE.CylinderGeometry(trunkRadius, trunkRadius, trunkHeight, 16);
+    trunk.position.y = (treeBaseY + groundY) / 2;
+    
+    // Update star position
+    if (starGroup) {
+        starGroup.position.y = tree.position.y + (treeHeight / 2) + starSize * 0.5;
+    }
+    
+    // Update all decorations
+    updateDecorations(
+        parseInt(document.getElementById('balls').value),
+        parseInt(document.getElementById('lights').value),
+        parseInt(document.getElementById('lollipops').value)
+    );
+    toggleLights(lightsOn);
+}
+
+// Function to update star size
+function updateStarSize(size) {
+    starSize = size;
+    createStar(starSize);
+    if (lightsOn) {
+        toggleLights(true);
+    }
+}
+
+// Function to update light intensity
+function updateLightIntensity(intensity) {
+    lightIntensity = intensity;
+    if (lightsOn) {
+        lights.forEach((lightObj) => {
+            lightObj.light.intensity = intensity;
+            lightObj.mesh.material.emissiveIntensity = intensity;
+        });
+    }
+}
+
 // Function to toggle lights on/off
 function toggleLights(on) {
     lightsOn = on;
     lights.forEach((lightObj) => {
         if (on) {
-            lightObj.light.intensity = 0.5;
-            lightObj.mesh.material.emissiveIntensity = 0.5;
+            lightObj.light.intensity = lightIntensity;
+            lightObj.mesh.material.emissiveIntensity = lightIntensity;
             lightObj.mesh.material.emissive = 0xffffaa;
             lightObj.mesh.material.color = new THREE.Color(0xffffaa); // Keep color bright
         } else {
@@ -657,9 +726,9 @@ function animateLights() {
     const time = Date.now() * 0.001;
     lights.forEach((lightObj, index) => {
         // Twinkling effect
-        const intensity = 0.3 + Math.sin(time * 2 + index) * 0.2;
+        const intensity = lightIntensity * 0.6 + Math.sin(time * 2 + index) * lightIntensity * 0.4;
         lightObj.light.intensity = intensity;
-        lightObj.mesh.material.emissiveIntensity = 0.3 + intensity * 0.3;
+        lightObj.mesh.material.emissiveIntensity = intensity;
         // Preserve the bright color when animating
         lightObj.mesh.material.color = new THREE.Color(0xffffaa);
         lightObj.mesh.material.emissive = new THREE.Color(0xffffaa);
@@ -670,9 +739,20 @@ function animateLights() {
 const ballsSlider = document.getElementById('balls');
 const lightsSlider = document.getElementById('lights');
 const lollipopsSlider = document.getElementById('lollipops');
+const treeHeightSlider = document.getElementById('tree-height');
+const treeRadiusSlider = document.getElementById('tree-radius');
+const starSizeSlider = document.getElementById('star-size');
+const lightIntensitySlider = document.getElementById('light-intensity');
+const rotationSpeedSlider = document.getElementById('rotation-speed');
+
 const ballsValue = document.getElementById('balls-value');
 const lightsValue = document.getElementById('lights-value');
 const lollipopsValue = document.getElementById('lollipops-value');
+const treeHeightValue = document.getElementById('tree-height-value');
+const treeRadiusValue = document.getElementById('tree-radius-value');
+const starSizeValue = document.getElementById('star-size-value');
+const lightIntensityValue = document.getElementById('light-intensity-value');
+const rotationSpeedValue = document.getElementById('rotation-speed-value');
 
 ballsSlider.addEventListener('input', (e) => {
     const value = parseInt(e.target.value);
@@ -694,6 +774,40 @@ lollipopsSlider.addEventListener('input', (e) => {
     updateDecorations(parseInt(ballsSlider.value), parseInt(lightsSlider.value), value);
     // Restore lights state after updating decorations
     toggleLights(lightsOn);
+});
+
+// Tree size controls
+treeHeightSlider.addEventListener('input', (e) => {
+    const value = parseFloat(e.target.value);
+    treeHeightValue.textContent = value;
+    updateTreeSize(value, treeRadius);
+});
+
+treeRadiusSlider.addEventListener('input', (e) => {
+    const value = parseFloat(e.target.value);
+    treeRadiusValue.textContent = value;
+    updateTreeSize(treeHeight, value);
+});
+
+// Star size control
+starSizeSlider.addEventListener('input', (e) => {
+    const value = parseFloat(e.target.value);
+    starSizeValue.textContent = value;
+    updateStarSize(value);
+});
+
+// Light intensity control
+lightIntensitySlider.addEventListener('input', (e) => {
+    const value = parseFloat(e.target.value);
+    lightIntensityValue.textContent = value;
+    updateLightIntensity(value);
+});
+
+// Rotation speed control
+rotationSpeedSlider.addEventListener('input', (e) => {
+    const value = parseFloat(e.target.value);
+    rotationSpeedValue.textContent = value;
+    rotationSpeed = value;
 });
 
 // Lights toggle switch
@@ -738,6 +852,14 @@ function animate() {
     
     controls.update();
     animateLights();
+    
+    // Auto-rotation
+    if (rotationSpeed > 0) {
+        tree.rotation.y += rotationSpeed * 0.01;
+        if (starGroup) {
+            starGroup.rotation.y += rotationSpeed * 0.01;
+        }
+    }
     
     renderer.render(scene, camera);
 }
