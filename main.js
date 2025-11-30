@@ -283,7 +283,6 @@ createStar();
 let balls = [];
 let lights = [];
 let lightObjects = [];
-let lightWires = [];
 let lollipops = [];
 let lightsOn = true;
 let lightIntensity = 0.5;
@@ -514,43 +513,6 @@ function createCandyStick(position) {
     return candyStickGroup;
 }
 
-// Function to create wire between two light positions
-function createWire(startPos, endPos) {
-    const wireThickness = 0.008; // Much thinner wire
-    const wireMaterial = new THREE.MeshStandardMaterial({ 
-        color: 0x444444, // Darker gray for wire
-        metalness: 0.5,
-        roughness: 0.8
-    });
-    
-    // Position wire outside tree surface - push both points outward
-    const startDir = new THREE.Vector3().subVectors(startPos, new THREE.Vector3(0, startPos.y, 0)).normalize();
-    const endDir = new THREE.Vector3().subVectors(endPos, new THREE.Vector3(0, endPos.y, 0)).normalize();
-    const wireOffset = 0.12; // Push wire outward from tree
-    
-    const adjustedStart = new THREE.Vector3(startPos.x, startPos.y, startPos.z);
-    adjustedStart.add(startDir.multiplyScalar(wireOffset));
-    
-    const adjustedEnd = new THREE.Vector3(endPos.x, endPos.y, endPos.z);
-    adjustedEnd.add(endDir.multiplyScalar(wireOffset));
-    
-    const adjustedDirection = new THREE.Vector3().subVectors(adjustedEnd, adjustedStart);
-    const length = adjustedDirection.length();
-    const wireGeometry = new THREE.CylinderGeometry(wireThickness, wireThickness, length, 8);
-    const wire = new THREE.Mesh(wireGeometry, wireMaterial);
-    
-    const midpoint = new THREE.Vector3().addVectors(adjustedStart, adjustedEnd).multiplyScalar(0.5);
-    wire.position.copy(midpoint);
-    
-    // Orient the cylinder along the direction
-    const up = new THREE.Vector3(0, 1, 0);
-    const quaternion = new THREE.Quaternion();
-    quaternion.setFromUnitVectors(up, adjustedDirection.normalize());
-    wire.quaternion.copy(quaternion);
-    
-    return wire;
-}
-
 // Function to update decorations
 function updateDecorations(numBalls, numLights, numLollipops) {
     // Remove existing balls
@@ -566,12 +528,6 @@ function updateDecorations(numBalls, numLights, numLollipops) {
     });
     lights = [];
     lightObjects = [];
-
-    // Remove existing wires
-    lightWires.forEach(wire => {
-        scene.remove(wire);
-    });
-    lightWires = [];
 
     // Remove existing lollipops
     lollipops.forEach(lollipop => {
@@ -591,22 +547,12 @@ function updateDecorations(numBalls, numLights, numLollipops) {
     // Get evenly distributed positions for lights (with star padding and different angle offset)
     const lightPositions = getEvenlyDistributedPointsOnCone(treeRadius, treeHeight, tree.position.y - treeHeight/2, numLights, 0.15, Math.PI / 3); // 60 degree offset
     
-    // Sort lights by height (bottom to top) for wire connection
-    const sortedLightPositions = [...lightPositions].sort((a, b) => a.y - b.y);
-    
-    sortedLightPositions.forEach((position, index) => {
+    lightPositions.forEach((position) => {
         const lightObj = createLight(position);
         scene.add(lightObj.mesh);
         scene.add(lightObj.light);
         lights.push(lightObj);
         lightObjects.push(lightObj.light);
-        
-        // Create wire to next light (if not the last one)
-        if (index < sortedLightPositions.length - 1) {
-            const wire = createWire(position, sortedLightPositions[index + 1]);
-            scene.add(wire);
-            lightWires.push(wire);
-        }
     });
 
     // Get evenly distributed positions for candy sticks (with star padding and different angle offset)
