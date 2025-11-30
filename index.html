@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Configurable Christmas Tree</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            min-width: 250px;
+            z-index: 100;
+        }
+
+        #controls h2 {
+            margin-bottom: 15px;
+            color: #2a5298;
+            font-size: 20px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+
+        .control-group .value {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .control-group input[type="checkbox"] {
+            width: 40px;
+            height: 20px;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-container label {
+            margin-bottom: 0;
+            cursor: pointer;
+        }
+
+        .info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #333;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .info p {
+            margin: 5px 0;
+        }
+
+        @media (max-width: 768px) {
+            #controls {
+                top: 10px;
+                right: 10px;
+                padding: 15px;
+                min-width: 200px;
+                font-size: 14px;
+            }
+
+            #controls h2 {
+                font-size: 18px;
+            }
+
+            .info {
+                bottom: 10px;
+                left: 10px;
+                padding: 10px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="canvas-container"></div>
+        
+        <div id="controls">
+            <h2>🎄 Tree Configuration</h2>
+            
+            <div class="control-group">
+                <label for="balls">Christmas Balls:</label>
+                <input type="range" id="balls" min="0" max="50" value="15" step="1">
+                <span class="value" id="balls-value">15</span>
+            </div>
+            
+            <div class="control-group">
+                <label for="lights">Lights:</label>
+                <input type="range" id="lights" min="0" max="30" value="10" step="1">
+                <span class="value" id="lights-value">10</span>
+            </div>
+            
+            <div class="control-group">
+                <label for="lollipops">Candy Sticks:</label>
+                <input type="range" id="lollipops" min="0" max="25" value="8" step="1">
+                <span class="value" id="lollipops-value">8</span>
+            </div>
+            
+            <div class="control-group">
+                <div class="toggle-container">
+                    <input type="checkbox" id="lights-on" checked>
+                    <label for="lights-on">Lights On</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="info">
+            <p><strong>Controls:</strong></p>
+            <p>🖱️ Left Click + Drag: Rotate</p>
+            <p>🖱️ Right Click + Drag: Pan</p>
+            <p>🖱️ Scroll: Zoom</p>
+        </div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>
+
